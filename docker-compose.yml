@@ -1,0 +1,44 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: studio_backend
+    restart: unless-stopped
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    volumes:
+      - ./backend:/app
+      - ./storage:/app/storage
+    environment:
+      - ENVIRONMENT=${ENVIRONMENT:-development}
+      - PROJECT_NAME=${PROJECT_NAME:-FastAPI Next.js Studio}
+      - STORAGE_DIR=/app/storage
+      - CORS_ORIGINS=["http://localhost:3000","http://127.0.0.1:3000"]
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    networks:
+      - studio_net
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: studio_frontend
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
+    depends_on:
+      - backend
+    command: npm run dev
+    networks:
+      - studio_net
+
+networks:
+  studio_net:
+    driver: bridge
